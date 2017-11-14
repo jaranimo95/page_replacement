@@ -2,7 +2,7 @@ public class PageTableEntry {
 	private boolean referenced;	// Denotes whether a page has been referenced recently
 	private boolean dirty;		// Denotes whether a page has been modified
 	private boolean valid;		// Denotes whether a page currently lives in RAM
-	private int frameNumber;
+	private int frameNumber;	
 
 	public PageTableEntry(boolean r, boolean d, boolean v, int f) {
 		referenced = r;

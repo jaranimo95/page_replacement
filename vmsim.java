@@ -11,25 +11,30 @@ public class vmsim {
 	private static void report(String algorithm, int numFrames, int numAccesses, int numFaults, int numWrites){}
 
 	// Page Replacement Algorithms
-	private static void opt(int numFrames, File instructions){}
-	private static void clock(int numFrames, File instructions){}
-	private static void nru(int numFrames, int refresh, File instructions){}
+	private static void    opt(int numFrames, File instructions){}
+	private static void  clock(int numFrames, File instructions){}
 	private static void random(int numFrames, File instructions){}
+	private static void    nru(int numFrames, int refresh, File instructions){}
 
 	private static void simulate(String algorithm, int numFrames, int refresh, File instructions) {
 
-		PageTableEntry[]  pageTable = new PageTableEntry[NUM_PAGES];
-		for(int i = 0; i < NUM_PAGES; i++)
+		PageTableEntry[]  pageTable = new PageTableEntry[NUM_PAGES];	// Create page table
+		for(int i = 0; i < NUM_PAGES; i++)								// Initialize all PTE's
 			pageTable[i] = new PageTableEntry(false,false,false,-1);
 
-		PageTableEntry[] frameTable = new PageTableEntry[numFrames];
+		int[] frameTable = new int[numFrames];							// Create frame table
+		for(int i = 0; i < numFrames; i++)								// Initialize frames
+			frameTable[i] = -1;
+
+		int[] memRefs;													// Create lookup table for memory references from file (offline setting)
+
 	}
 
 	public static void main(String args[]) {
 		
 		String algorithm;
 		int numFrames, refresh = 0;
-		File f;
+		File f = null;
 
 		if(args[0].compareTo("-n") == 0) {
 			numFrames = Integer.parseInt(args[1]);
@@ -46,7 +51,6 @@ public class vmsim {
 					f = new File(args[5]);
 					System.out.println("Reading from " + args[5] + "...");
 				}
-				else f = new File("killme.txt");
 				simulate(algorithm,numFrames,refresh,f);
 			}
 		}
