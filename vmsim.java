@@ -1,4 +1,11 @@
+// Christian Jarani
+// CS 1550: Intro to Operating Systems
+// Project 3: VM Simulator
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+import java.util.Random;
 import java.lang.Math;
 
 public class vmsim {
@@ -11,23 +18,48 @@ public class vmsim {
 	private static void report(String algorithm, int numFrames, int numAccesses, int numFaults, int numWrites){}
 
 	// Page Replacement Algorithms
-	private static void    opt(int numFrames, File instructions){}
-	private static void  clock(int numFrames, File instructions){}
-	private static void random(int numFrames, File instructions){}
-	private static void    nru(int numFrames, int refresh, File instructions){}
+	private static void opt(int[] frameTable, RefEntry[] refTable, int numFrames, int numRefs) {
+		int evictFrame = -1, evictFutureRef = -1;
+		for(int i = 0; i < numFrames; i++) {
+			
+		}
+	}
+	private static void clock(int[] frameTable, int numFrames) {}
 
-	private static void simulate(String algorithm, int numFrames, int refresh, File instructions) {
+	private static int random(int numFrames) {
+		Random rand = new Random();
+		return rand.nextInt(numFrames);			// Return a random page between base address and 
+	}
 
-		PageTableEntry[]  pageTable = new PageTableEntry[NUM_PAGES];	// Create page table
+	private static void nru(int[] frameTable, int numFrames, int refresh) {}
+
+	private static void simulate(String algorithm, int numFrames, int refresh, File tracefile) {
+
+		// Algorithm Statistics
+		int usedFrames = 0, numRefs = 0, numFaults = 0, numWrites = 0; 
+
+		Scanner reader = null;
+		try {   reader = new Scanner(tracefile);  }
+		catch(FileNotFoundException e) { 
+			System.out.println("\n!!! ERROR - File not found !!!\n"); return;
+		}
+
+		PageTableEntry[] pageTable = new PageTableEntry[NUM_PAGES];		// Create page table
 		for(int i = 0; i < NUM_PAGES; i++)								// Initialize all PTE's
 			pageTable[i] = new PageTableEntry(false,false,false,-1);
 
-		int[] frameTable = new int[numFrames];							// Create frame table
-		for(int i = 0; i < numFrames; i++)								// Initialize frames
-			frameTable[i] = -1;
-
-		int[] memRefs;													// Create lookup table for memory references from file (offline setting)
-
+		PageTableEntry[] frameTable = new PageTableEntry[numFrames];	// Create frame table (remains empty until we load a page)
+		
+		RefEntry[] refTable = new RefEntry[(int) Math.pow(2,20)];		// Create lookup table for memory references from file (offline setting)
+		
+		String[] 	tokens 	= null;										// Will hold the separated address & mode (read or write)
+		String 		line 	= reader.nextLine();						// Read first line of file
+		while(reader.hasNextLine()) {									// And keep reading until there is nothing left to read (EOF)
+			tokens = line.split("\\s");										// Split line into address and mode
+			refTable[numRefs] = new RefEntry(tokens[0],tokens[1]);			// Make new RefEntry from contents of tokens
+			line = reader.nextLine();										// Read next line
+			numRefs++;														// Increment total number of memory references made
+		}
 	}
 
 	public static void main(String args[]) {
@@ -54,5 +86,69 @@ public class vmsim {
 				simulate(algorithm,numFrames,refresh,f);
 			}
 		}
+	}
+}
+
+class PageTableEntry {
+	private boolean referenced;	// Denotes whether a page has been referenced recently
+	private boolean dirty;		// Denotes whether a page has been modified
+	private boolean valid;		// Denotes whether a page currently lives in RAM
+	private int frameNumber;	
+
+	public PageTableEntry(boolean r, boolean d, boolean v, int f) {
+		referenced = r;
+		dirty = d;
+		valid = v;
+		frameNumber = f;
+	}
+
+	public boolean isRef(){
+		return referenced;
+	}
+
+	public boolean isDirty(){
+		return dirty;
+	}
+
+	public boolean isValid(){
+		return valid;
+	}
+
+	public int getFrameNum() {
+		return frameNumber;
+	}
+
+	public void setRef(boolean r) {
+		referenced = r;
+	}
+
+	public void setDirty(boolean d) {
+		dirty = d;
+	}
+
+	public void setValid(boolean v) {
+		valid = v;
+	}
+
+	public void setFrameNum(int f) {
+		frameNumber = f;
+	}
+}
+
+class RefEntry {
+	private String address;
+	private char   mode;
+
+	public RefEntry(String a, String m) {
+		address = a;
+		mode = m.charAt(0);
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public char getMode() {
+		return mode;
 	}
 }
