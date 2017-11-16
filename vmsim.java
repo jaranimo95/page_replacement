@@ -21,19 +21,19 @@ public class vmsim {
 	private static void opt(int[] frameTable, RefEntry[] refTable, int numFrames, int numRefs) {
 		int evictFrame = -1, evictFutureRef = -1;
 		for(int i = 0; i < numFrames; i++) {
-			
+
 		}
 	}
 	private static void clock(int[] frameTable, int numFrames) {}
 
 	private static int random(int numFrames) {
 		Random rand = new Random();
-		return rand.nextInt(numFrames);			// Return a random page between base address and 
+		return rand.nextInt(numFrames);			// Return a random frame between 1st and last addresses in frame table
 	}
 
 	private static void nru(int[] frameTable, int numFrames, int refresh) {}
 
-	private static void simulate(String algorithm, int numFrames, int refresh, File tracefile) {
+	private static void test(String algorithm, int numFrames, int refresh, File tracefile) {
 
 		// Algorithm Statistics
 		int usedFrames = 0, numRefs = 0, numFaults = 0, numWrites = 0; 
@@ -48,8 +48,10 @@ public class vmsim {
 		for(int i = 0; i < NUM_PAGES; i++)								// Initialize all PTE's
 			pageTable[i] = new PageTableEntry(false,false,false,-1);
 
-		PageTableEntry[] frameTable = new PageTableEntry[numFrames];	// Create frame table (remains empty until we load a page)
-		
+		int[] frameTable = new int[numFrames];	// Create frame table (remains empty until we load a page)
+		for(int i = 0; i < numFrames; i++) {	// Initialize all frames to 'empty' status
+			frameTable[i] = -1;
+		}
 		RefEntry[] refTable = new RefEntry[(int) Math.pow(2,20)];		// Create lookup table for memory references from file (offline setting)
 		
 		String[] 	tokens 	= null;										// Will hold the separated address & mode (read or write)
@@ -60,6 +62,31 @@ public class vmsim {
 			line = reader.nextLine();										// Read next line
 			numRefs++;														// Increment total number of memory references made
 		}
+
+		for(int i = 0; i < numRefs; i++) {
+			int  pAddress = Integer.parseInt(refTable[i].getAddress()) >> 12; 	// Translate virtual address (Integer.parseInt(refTable[i].getAddress())) to page address ( >> 12)
+			char mode 	  = refTable[i].getMode();								// Find out if we were reading or writing to the address
+
+			//	   if(algorithm.compareTo("opt")	== 0)
+			//else if(algorithm.compareTo("nru") 	== 0)
+			//else if(algorithm.compareTo("clock") 	== 0)
+			//else if(algorithm.compareTo("random") == 0)
+
+			if(!pageTable[pAddress].isValid()) {		// If page address is invalid (page fault)
+				numFaults++;								// Increment running count of page faults
+				
+				if(usedFrames < numFrames) {				// If we still have open frames (compulsary miss)
+					for(int j = 0; j < numFrames; j++) {		// Find an open frame
+						if(frameTable[i] == -1) {					// If this frame is open
+							usedFrames++;
+							frameTable[i] == pAddress;
+							//pageTable[pAddress]['frame_index'] = i;
+						}
+					}
+				}
+				else{}
+			}
+		}
 	}
 
 	public static void main(String args[]) {
@@ -68,6 +95,7 @@ public class vmsim {
 		int numFrames, refresh = 0;
 		File f = null;
 
+		// Parse command line flags
 		if(args[0].compareTo("-n") == 0) {
 			numFrames = Integer.parseInt(args[1]);
 			if(args[2].compareTo("-a") == 0) {
@@ -83,7 +111,7 @@ public class vmsim {
 					f = new File(args[5]);
 					System.out.println("Reading from " + args[5] + "...");
 				}
-				simulate(algorithm,numFrames,refresh,f);
+				test(algorithm,numFrames,refresh,f);
 			}
 		}
 	}
