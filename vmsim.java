@@ -9,6 +9,7 @@ import java.util.Random;
 import java.lang.Math;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.ArrayList;
 
 public class vmsim {
 
@@ -62,15 +63,38 @@ public class vmsim {
 	// NRU will continuously check if a page has been referenced/modified during page management, even when evicition is unnecessary.
 	// 	 Similar to CLOCK, but age is not represented both implicitly AND explicitly by the position in a queue supplemented with a timestamp.
 	//	 Rather, it is only represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period)
-	private static int nru(int[] frameTable, int numFrames, int refresh) {
+	private static int nru(PageTableEntry[] pageTable, int[] frameTable, int numFrames, int refresh) {
 		
 		// Create 4 eviction classes for pages to be grouped into
-		LinkedList<Integer> notRefnotDirty = new LinkedList<Integer>();	// 1st candidates for eviction
-		LinkedList<Integer> notRefisDirty  = new LinkedList<Integer>();	// 2nd "
-		LinkedList<Integer> isRefnotDirty  = new LinkedList<Integer>();	// 3rd "
-		LinkedList<Integer> isRefisDirty   = new LinkedList<Integer>(); // 4th "
+		ArrayList<Integer> notRefnotDirty = new ArrayList<Integer>();	// 1st candidates for eviction
+		ArrayList<Integer> notRefisDirty  = new ArrayList<Integer>();	// 2nd "
+		ArrayList<Integer> isRefnotDirty  = new ArrayList<Integer>();	// 3rd "
+		ArrayList<Integer> isRefisDirty   = new ArrayList<Integer>(); 	// 4th "
 
-		return 0;
+		// Categorize frames by class
+		for(int i = 0; i < numFrames; i++) {
+			if(!pageTable[frameTable[i]].isRef() && !pageTable[frameTable[i]].isDirty())		// If page is unreferenced and not dirty
+				notRefnotDirty.add(i);
+			else if(!pageTable[frameTable[i]].isRef() && pageTable[frameTable[i]].isDirty())	// If page is unreferenced and dirty
+				notRefisDirty.add(i);
+			else if(pageTable[frameTable[i]].isRef() && !pageTable[frameTable[i]].isDirty())	// If page is referenced and not dirty
+				isRefnotDirty.add(i);
+			else if(pageTable[frameTable[i]].isRef() && pageTable[frameTable[i]].isDirty())		// If page is referenced and dirty
+				isRefisDirty.add(i);
+		}
+
+		// Randomly select frame from best possible eviction category
+		Random rand = new Random();
+		if(notRefnotDirty.size() != 0)
+			return notRefnotDirty.remove(rand.nextInt(notRefnotDirty.size()));
+		else if(notRefisDirty.size() != 0)
+			return notRefisDirty.remove(rand.nextInt(notRefisDirty.size()));
+		else if(isRefnotDirty.size() != 0)
+			return isRefnotDirty.remove(rand.nextInt(isRefnotDirty.size()));
+		else if(isRefisDirty.size() != 0)
+			return isRefisDirty.remove(rand.nextInt(isRefisDirty.size()));
+		
+		return -1;	// Should be impossible to reach unless pageTable or frameTable is uninitialized
 	}
 
 
@@ -141,12 +165,12 @@ public class vmsim {
 			pAddress = (int) temp >>> 12;							// Logical right shift by 12 bits to isolate our page address
 			mode = refTable[i].getMode();							// Find if we are reading or writing
 			
-			if(algChoice == 0)										// If using OPT
-				pageRefTable[pAddress].pop();							// Remove current page reference
- 			else if(algChoice == 3)	{								// Else if using NRU
- 				if(i != 0 && i % refresh == 0) {						// If our refresh period has exceeded
- 					for(int j = 0; j < numFrames; j++)						// For each page currently loaded into frame
- 						pageTable[frameTable[j]].setRef(false);					// Set each page to unreferenced
+			if(algChoice == 0 && pageRefTable[pAddress].size() != 0)	// If using OPT
+				pageRefTable[pAddress].pop();								// Remove current page reference
+ 			else if(algChoice == 3)	{									// Else if using NRU
+ 				if(i != 0 && i % refresh == 0) {							// If our refresh period has exceeded
+ 					for(int j = 0; j < numFrames; j++)							// For each page currently loaded into frame
+ 						pageTable[frameTable[j]].setRef(false);						// Set each page to unreferenced
  				}
  			}
 
@@ -167,7 +191,7 @@ public class vmsim {
 						 if(algChoice == 0) evictionIndex = opt(pageRefTable,frameTable,numFrames,numRefs);
 					else if(algChoice == 1) evictionIndex = clock(pageTable,frameTable,numFrames);
 					else if(algChoice == 2) evictionIndex = random(numFrames);
-					else if(algChoice == 3) evictionIndex = nru(frameTable,numFrames,refresh);
+					else if(algChoice == 3) evictionIndex = nru(pageTable,frameTable,numFrames,refresh);
 
 					int pageToEvict = frameTable[evictionIndex];	// Get address of page we want to evict
 					pageTable[pageToEvict].setFrameNum(-1);			// Disassociate frame from page
