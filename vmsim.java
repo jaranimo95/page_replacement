@@ -95,8 +95,9 @@ public class vmsim {
 			numRefs++;														// Increment total number of memory references made
 		}
 
+		LinkedList<Integer>[] pageRefTable = null;
 		if(algChoice == 0) {											// If we are using OPT as our page replacement algorithm
-			LinkedList<Integer>[] pageRefTable = new LinkedList[NUM_PAGES];	// Create lookup array of lists for our refs
+			pageRefTable = new LinkedList[NUM_PAGES];	// Create lookup array of lists for our refs
 			for(int i = 0; i < NUM_PAGES; i++) {							// This will allows us to see all occurences of a page reference indexed by the address itself
 				pageRefTable[i] = new LinkedList<Integer>();
 			}
@@ -142,7 +143,7 @@ public class vmsim {
 				} else {									// Capacity Miss: we need to evict something
 					
 					int evictionIndex = 0;
-						 if(algChoice == 0) evictionIndex = opt(frameTable,refTable,numFrames,numRefs);
+						 if(algChoice == 0) evictionIndex = opt(pageRefTable,frameTable,numFrames,numRefs);
 					else if(algChoice == 1) evictionIndex = clock(frameTable,numFrames);
 					else if(algChoice == 2) evictionIndex = random(numFrames);
 					else if(algChoice == 3) evictionIndex = nru(frameTable,numFrames,refresh);
