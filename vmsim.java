@@ -7,10 +7,10 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.Random;
 import java.lang.Math;
+import java.util.List;
+import java.util.LinkedList;
 
 public class vmsim {
-
-
 
 	 ////////////////////////////
 	// System Fields (32-bit) //
@@ -21,13 +21,12 @@ public class vmsim {
 	private static final int NUM_PAGES 	  = (int) Math.pow(2,20);		// 2^32 / 2^12 = 2^20 (total # of address divided by page size)
 
  
-
 	 /////////////////////////////////
 	// Page Replacement Algorithms //
    /////////////////////////////////
 
 	// OPT will evict a page based on if/when it's referenced in the future (i.e. from an off-line setting like a tracefile)
-	private static int opt(int[] frameTable, RefEntry[] refTable, int numFrames, int numRefs) {
+	private static int opt(LinkedList<Integer>[] pageRefTable, int[] frameTable, int numFrames, int numRefs) {
 		int evictFrame = -1, evictFutureRef = -1;
 		for(int i = 0; i < numFrames; i++) {
 
@@ -55,9 +54,9 @@ public class vmsim {
 
 
 
-	 //////////////////////
-	// Simulation Logic //
-   //////////////////////
+	 ////////////////
+	// Simulation //
+   ////////////////
 
 	private static void simulate(String algorithm, int numFrames, int refresh, File tracefile) {
 
@@ -70,7 +69,8 @@ public class vmsim {
 
 		// Algorithm Statistics
 		int usedFrames = 0, numRefs = 0, numFaults = 0, numWrites = 0; 
-
+		 
+		// Initializations
 		Scanner reader = null;
 		try {   reader = new Scanner(tracefile);  }
 		catch(FileNotFoundException e) { 
@@ -88,29 +88,48 @@ public class vmsim {
 
 		RefEntry[] refTable = new RefEntry[NUM_PAGES];		// Create lookup table for memory references from file (offline setting)
 		String[]   tokens 	= null;										// Will hold the separated address & mode (read or write)
-		String 	   line;						// Read first line of file
+		String 	   line;												// Read first line of file
 		while(reader.hasNextLine()) {									// And keep reading until there is nothing left to read (EOF)
-			line = reader.nextLine();										// Read next line
-			tokens = line.split("\\s");										// Split line into address and mode
+			tokens = reader.nextLine().split("\\s");						// Split current line into address and mode
 			refTable[numRefs] = new RefEntry(tokens[0],tokens[1]);			// Make new RefEntry from contents of tokens
 			numRefs++;														// Increment total number of memory references made
 		}
-		
-		
-		if(algChoice == 0) {
-			
+
+		if(algChoice == 0) {											// If we are using OPT as our page replacement algorithm
+			LinkedList<Integer>[] pageRefTable = new LinkedList[NUM_PAGES];	// Create lookup array of lists for our refs
+			for(int i = 0; i < NUM_PAGES; i++) {							// This will allows us to see all occurences of a page reference indexed by the address itself
+				pageRefTable[i] = new LinkedList<Integer>();
+			}
+
+			float  a;
+			int b;
+			for(int i = 0; i < numRefs; i++) {						// For each reference in the refTable
+				a = Long.parseLong(refTable[i].getAddress(),32); 		// Get full virtual address
+				b = (int) a >>> 12;										// Logical right shift by 12 bits to isolate our page address
+				pageRefTable[b].add(i);									// Add an occurence of this memory reference (indexed by address)
+			}
 		}
 
+		// Simulation Logic
+		char mode;
+		long temp;
+		int  pAddress;
 		for(int i = 0; i < numRefs; i++) {
-			long temp = Long.parseLong(refTable[i].getAddress(),32); 	// Get full virtual address
-			int  pAddress = (int) temp >>> 12;							// Logical shift 12 bits to isolate our page address
-			char mode = refTable[i].getMode();							// Find if we are reading or writing
-
-			//	   if(algChoice == 0)	set up shit OPT needs
- 			//else if(algChoice == 3)	set up shit NRU needs
+			temp = Long.parseLong(refTable[i].getAddress(),32); 	// Get full virtual address
+			pAddress = (int) temp >>> 12;							// Logical right shift by 12 bits to isolate our page address
+			mode = refTable[i].getMode();							// Find if we are reading or writing
+			
+			if(algChoice == 0)										// If using OPT
+				pageRefTable[pAddress].pop();							// Remove current page reference
+ 			else if(algChoice == 3)	{								// Else if using NRU
+ 				if(i != 0 && i % refresh == 0) {						// If our refresh period has exceeded
+ 					for(int j = 0; j < numFrames; j++)						// For each page currently loaded into frame
+ 						pageTable[frameTable[j]].setRef(false);					// Set each page to unreferenced
+ 				}
+ 			}
 
 			if(!pageTable[pAddress].isValid()) {		// If page address is invalid (page fault)
-
+				if(pAddress > NUM_PAGES) System.out.println(pAddress);
 				numFaults++;								// Increment running count of page faults
 				if(usedFrames < numFrames) {				// Compulsary Miss: we still have open frames (no eviction necessary)
 					for(int j = 0; j < numFrames; j++) {		// Find an open frame
@@ -138,8 +157,8 @@ public class vmsim {
 						numWrites++;									// Write page back to disk (increment running count of disk writes)
 					}
 					
-					frameTable[evictionIndex] = pAddress;			// 
-					pageTable[pAddress].setFrameNum(i);
+					frameTable[evictionIndex] = pAddress;			// Associate newly-freed frame with page we want to load
+					pageTable[pAddress].setFrameNum(i);				// Associate same page in page table with the frame we loaded it into
 				}
 				pageTable[pAddress].setValid(true);				// Set valid it to 1 (signal page is loaded into a frame)																						
 			}
@@ -157,7 +176,6 @@ public class vmsim {
 		System.out.println("Total page faults:\t" + numFaults);
 		System.out.println("Total writes to disk:\t" + numWrites);
 	}
-
 
 
 
