@@ -10,6 +10,8 @@ import java.lang.Math;
 
 public class vmsim {
 
+
+
 	 ////////////////////////////
 	// System Fields (32-bit) //
    ////////////////////////////	
@@ -18,12 +20,13 @@ public class vmsim {
 	private static final int ADDRESS_SIZE = (int) Math.pow(2,32);		// 2^32 (all enumerable addresses for a 32-bit system)
 	private static final int NUM_PAGES 	  = (int) Math.pow(2,20);		// 2^32 / 2^12 = 2^20 (total # of address divided by page size)
 
+ 
 
 	 /////////////////////////////////
 	// Page Replacement Algorithms //
    /////////////////////////////////
 
-	// OPT will evict a page based on if/when it's referenced in the future
+	// OPT will evict a page based on if/when it's referenced in the future (i.e. from an off-line setting like a tracefile)
 	private static int opt(int[] frameTable, RefEntry[] refTable, int numFrames, int numRefs) {
 		int evictFrame = -1, evictFutureRef = -1;
 		for(int i = 0; i < numFrames; i++) {
@@ -37,14 +40,15 @@ public class vmsim {
 		return 0;
 	}
 
+	// RANDOM will select a random page to evict
 	private static int random(int numFrames) {
 		Random rand = new Random();
 		return rand.nextInt(numFrames);			// Return a random frame between 1st and last addresses in frame table
 	}
 
 	// NRU will continuously check if a page has been referenced/modified during page management, even when evicition is unnecessary.
-	// 	 Similar to CLOCK, but age is not represented implicitly by the position in a queue.
-	//	 Rather, it is represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period)
+	// 	 Similar to CLOCK, but age is not represented both implicitly AND explicitly by the position in a queue supplemented with a timestamp.
+	//	 Rather, it is only represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period)
 	private static int nru(int[] frameTable, int numFrames, int refresh) {
 		return 0;
 	}
@@ -92,6 +96,11 @@ public class vmsim {
 			numRefs++;														// Increment total number of memory references made
 		}
 		
+		
+		if(algChoice == 0) {
+			
+		}
+
 		for(int i = 0; i < numRefs; i++) {
 			long temp = Long.parseLong(refTable[i].getAddress(),32); 	// Get full virtual address
 			int  pAddress = (int) temp >>> 12;							// Logical shift 12 bits to isolate our page address
@@ -123,11 +132,13 @@ public class vmsim {
 					pageTable[pageToEvict].setFrameNum(-1);			// Disassociate frame from page
 					pageTable[pageToEvict].setValid(false);			// Set valid bit to 0 (signal page no longer is loaded into a frame)
 					pageTable[pageToEvict].setRef(false);			// Set referenced bit to 0 (signal page has not been referenced)
+					
 					if(pageTable[pageToEvict].isDirty()) {			// If page has been modified (is dirty) since being loaded into a frame
 						pageTable[pageToEvict].setDirty(false);			// Set dirty bit to 0 (signal page has not been modified)
 						numWrites++;									// Write page back to disk (increment running count of disk writes)
 					}
-					frameTable[evictionIndex] = pAddress;
+					
+					frameTable[evictionIndex] = pAddress;			// 
 					pageTable[pAddress].setFrameNum(i);
 				}
 				pageTable[pAddress].setValid(true);				// Set valid it to 1 (signal page is loaded into a frame)																						
@@ -146,6 +157,13 @@ public class vmsim {
 		System.out.println("Total page faults:\t" + numFaults);
 		System.out.println("Total writes to disk:\t" + numWrites);
 	}
+
+
+
+
+	 /////////////////////////////////////
+	// Command Handling & Dependencies //
+   /////////////////////////////////////
 
 	public static void main(String args[]) {
 		
