@@ -27,28 +27,49 @@ public class vmsim {
 
 	// OPT will evict a page based on if/when it's referenced in the future (i.e. from an off-line setting like a tracefile)
 	private static int opt(LinkedList<Integer>[] pageRefTable, int[] frameTable, int numFrames, int numRefs) {
-		int evictFrame = -1, evictFutureRef = -1;
-		for(int i = 0; i < numFrames; i++) {
-
+		int toEvict = -1, evictFutureRef = -1;
+		for(int i = 0; i < numFrames; i++) {									// For all pages loaded into frames
+			if(pageRefTable[frameTable[i]].size() == 0) {							// If no references for a page in the future
+				return i;																// Evict this page
+			}
+			else if(evictFutureRef < pageRefTable[frameTable[i]].peekFirst()) {		// Else if this page is referenced further in the future
+				evictFutureRef = pageRefTable[frameTable[i]].peekFirst();				// Select as current candidate for eviction
+				toEvict = i;															
+			}
 		}
-		return 0;
+		return toEvict;		// Return index of page to evict
 	}
 
 	// CLOCK will evict the oldest unreferenced page, using its position in a circular queue as a measure of history
-	private static int clock(int[] frameTable, int numFrames) {
-		return 0;
+	private static int clock(PageTableEntry[] pageTable, int[] frameTable, int numFrames) {
+		int clockIndex = 0, pageIndex = 0;
+		while(true) {
+			pageIndex = frameTable[clockIndex];		  // Get page at current clock index
+			if(!pageTable[pageIndex].isRef())		  // If page is not referenced
+				return clockIndex;						  // Evict this page
+			else pageTable[pageIndex].setRef(false);  // Else set page to unreferenced
+			clockIndex++;							  // Increment clock index (mimicing circular queue)
+			clockIndex %= numFrames;
+		}
 	}
 
 	// RANDOM will select a random page to evict
 	private static int random(int numFrames) {
 		Random rand = new Random();
-		return rand.nextInt(numFrames);			// Return a random frame between 1st and last addresses in frame table
+		return rand.nextInt(numFrames);			// Return a random frame in frame table to evict
 	}
 
 	// NRU will continuously check if a page has been referenced/modified during page management, even when evicition is unnecessary.
 	// 	 Similar to CLOCK, but age is not represented both implicitly AND explicitly by the position in a queue supplemented with a timestamp.
 	//	 Rather, it is only represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period)
 	private static int nru(int[] frameTable, int numFrames, int refresh) {
+		
+		// Create 4 eviction classes for pages to be grouped into
+		LinkedList<Integer> notRefnotDirty = new LinkedList<Integer>();	// 1st candidates for eviction
+		LinkedList<Integer> notRefisDirty  = new LinkedList<Integer>();	// 2nd "
+		LinkedList<Integer> isRefnotDirty  = new LinkedList<Integer>();	// 3rd "
+		LinkedList<Integer> isRefisDirty   = new LinkedList<Integer>(); // 4th "
+
 		return 0;
 	}
 
@@ -144,7 +165,7 @@ public class vmsim {
 					
 					int evictionIndex = 0;
 						 if(algChoice == 0) evictionIndex = opt(pageRefTable,frameTable,numFrames,numRefs);
-					else if(algChoice == 1) evictionIndex = clock(frameTable,numFrames);
+					else if(algChoice == 1) evictionIndex = clock(pageTable,frameTable,numFrames);
 					else if(algChoice == 2) evictionIndex = random(numFrames);
 					else if(algChoice == 3) evictionIndex = nru(frameTable,numFrames,refresh);
 
