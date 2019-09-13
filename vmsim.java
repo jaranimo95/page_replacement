@@ -3,10 +3,16 @@
 // Project 3: VM Simulator
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.Scanner;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 import java.util.Random;
 import java.lang.Math;
+
 import java.util.List;
 import java.util.LinkedList;
 import java.util.ArrayList;
@@ -30,11 +36,11 @@ public class vmsim {
 	private static int opt(LinkedList<Integer>[] pageRefTable, int[] frameTable, int numFrames, int numRefs) {
 		int toEvict = -1, evictFutureRef = -1;
 		for(int i = 0; i < numFrames; i++) {									// For all pages loaded into frames
-			if(pageRefTable[frameTable[i]].size() == 0) {							// If no references for a page in the future
+			if(pageRefTable[frameTable[i]].size() == 0) {							// If no references for this page in the future
 				return i;																// Evict this page
 			}
-			else if(evictFutureRef < pageRefTable[frameTable[i]].peekFirst()) {		// Else if this page is referenced further in the future
-				evictFutureRef = pageRefTable[frameTable[i]].peekFirst();				// Select as current candidate for eviction
+			else if(evictFutureRef < pageRefTable[frameTable[i]].get(0)) {		// Else if this page is referenced further in the future
+				evictFutureRef = pageRefTable[frameTable[i]].get(0);				// Select as current candidate for eviction
 				toEvict = i;															
 			}
 		}
@@ -50,7 +56,7 @@ public class vmsim {
 				return clockIndex;						  // Evict this page
 			else pageTable[pageIndex].setRef(false);  // Else set page to unreferenced
 			clockIndex++;							  // Increment clock index (mimicing circular queue)
-			clockIndex %= numFrames;
+			clockIndex %= numFrames;				  // Makes sure to keep within bounds of frame table since clockIndex increments indefinitely
 		}
 	}
 
@@ -60,9 +66,9 @@ public class vmsim {
 		return rand.nextInt(numFrames);			// Return a random frame in frame table to evict
 	}
 
-	// NRU will continuously check if a page has been referenced/modified during page management, even when evicition is unnecessary.
-	// 	 Similar to CLOCK, but age is not represented both implicitly AND explicitly by the position in a queue supplemented with a timestamp.
-	//	 Rather, it is only represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period)
+	/* NRU will continuously check if a page has been referenced/modified during page management, even when evicition is unnecessary.
+	 	 Similar to CLOCK, but age is not represented both implicitly AND explicitly by the position in a queue supplemented with a timestamp.
+		 Rather, it is only represented explicitly thru use of the dirty bit and referenced bit (which is reset after an amt of time called the refresh period) */
 	private static int nru(PageTableEntry[] pageTable, int[] frameTable, int numFrames) {
 		
 		// Create 4 eviction classes for pages to be grouped into
@@ -216,11 +222,28 @@ public class vmsim {
 	}
 
 	private static void report(String algorithm, int numFrames, int numRefs, int numFaults, int numWrites){
+		/*PrintWriter pw = null;
+		try{ pw = new PrintWriter(new BufferedWriter(new FileWriter("results.txt", true))); }
+		catch(FileNotFoundException e) {
+			System.out.println("File not found! (FNF)");
+		}
+		catch(IOException i) {
+			System.out.println("File not found! (IO)");
+		}
+
+		pw.println("Algorithm:\t" + algorithm);
+		pw.println("Number of frames:\t" + numFrames);
+		pw.println("Total memory accesses:\t" + numRefs);
+		pw.println("Total page faults:\t" + numFaults);
+		pw.println("Total writes to disk:\t" + numWrites + "\n");
+
+		pw.close(); */
+
 		System.out.println("Algorithm:\t" + algorithm);
 		System.out.println("Number of frames:\t" + numFrames);
 		System.out.println("Total memory accesses:\t" + numRefs);
 		System.out.println("Total page faults:\t" + numFaults);
-		System.out.println("Total writes to disk:\t" + numWrites);
+		System.out.println("Total writes to disk:\t" + numWrites + "\n");
 	}
 
 
